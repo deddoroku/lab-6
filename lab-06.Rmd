@@ -236,9 +236,6 @@ _Add your comment here_
 
 ```{r}
 # Create gmean2() that computes the geometric mean 
-#   that uses the original definition
-
-
 
 
 
