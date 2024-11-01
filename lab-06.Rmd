@@ -28,9 +28,27 @@ diamonds <- diamonds %>% rename(
 
 ```{r}
 # Do some preliminary investigations & cleaning
+head(diamonds)
+diamonds %>%
+  summarize(
+    Count_length_0 = sum(length_mm == 0),
+    Count_width_0 = sum(width_mm == 0),
+    Count_depth_0 = sum(depth_mm == 0)
+  )
+diamonds <- diamonds %>%
+  filter(length_mm > 0, width_mm > 0, depth_mm > 0)
 
 
 
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_point(alpha = 0.5, color = 'lightblue') +
+  theme_light() +
+  labs(title = "Price vs Carat", x = "Carat", y = "Price")
+
+ggplot(diamonds, aes(x = cut, y = price, fill = cut)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Price Distribution by Cut Quality", x = "Cut", y = "Price")
 
 ```
 
@@ -43,6 +61,8 @@ diamonds <- diamonds %>%
   mutate(table_mm = table_pct * width_mm / 100)
 
 # Overall table_mm arithmetic mean?
+mean_table_mm <- mean(diamonds$table_mm, na.rm = TRUE)
+print(mean_table_mm)
 
 
 
@@ -50,7 +70,14 @@ diamonds <- diamonds %>%
 
 
 # table_mm arithmetic mean within each clarity category
+mean_table_mm_by_clarity <- diamonds %>%
+  group_by(clarity) %>%
+  summarize(avg_table_mm = mean(table_mm, na.rm = TRUE))
+print(mean_table_mm_by_clarity)
 
+averages <- diamonds %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE, .names = "avg_{.col}"))
+print(averages)
 
 
 
@@ -61,7 +88,6 @@ diamonds <- diamonds %>%
 _Add your comment here_
 
 ```{r}
-# calculate the arithmetic mean across all numeric variables
 
 
 
@@ -72,7 +98,14 @@ _Add your comment here_
 
 ```{r}
 # Write gmean() command
-
+gmean <- function(x) {
+  if (any(x <= 0)) {
+    stop("All elements of x must be positive to compute the geometric mean.")}
+  log_sum <- sum(log(x))
+  n <- length(x)
+  geom_mean <- exp(log_sum / n)
+  
+  return(geom_mean)}
 
 
 ```
@@ -92,7 +125,13 @@ test_data <- list(
 
 
 # Create for loop to test gmean() on the above examples
-
+for (i in seq_along(test_data)) {
+  cat("\nResult for test", i, ":\n")
+  try({
+    if (all(is.numeric(test_data[[i]]) & test_data[[i]] > 0)) {
+      result <- gmean(test_data[[i]])
+      print(result)}
+    else {cat("Skipping test", i, "- non-numeric or non-positive values detected.\n")}}, silent = FALSE)}
 
 ```
 
@@ -101,13 +140,37 @@ test_data <- list(
 
 ```{r}
 # Copy gmean() from Ex 3 and edit it to check the input
-
+gmean <- function(x) {
+  if (!is.numeric(x)) {
+    warning("Input must be numeric.")
+    return(NaN)}
+  if (any(x <= 0)) {
+    warning("All elements of x must be strictly positive to compute the geometric mean.")
+    return(NaN)}
+  if (length(x) == 0) {
+    warning("Input vector is empty.")
+    return(NaN)}
+  log_sum <- sum(log(x))
+  n <- length(x)
+  geom_mean <- exp(log_sum / n)
+  return(geom_mean)}
 
 
 
 
 # Copy your code from Ex 4 to test your new command
-
+test_data <- list(
+  test1 = c(2.1, 3.8, 4.2),
+  test2 = c(1, 10, 100, 1000),
+  test3 = c(0, 1, 4),
+  test4 = c(0.38,  0.94, -1.56),
+  test5 = c(TRUE, TRUE),
+  test6 = c("6", "7", "8"))
+for (i in seq_along(test_data)) {
+  cat("\nResult for test", i, ":\n")
+  result <- gmean(test_data[[i]])
+  if (!is.nan(result)) 
+    {print(result)}}
 
 
 
@@ -118,7 +181,17 @@ test_data <- list(
 
 ```{r}
 # replicate the for loop from Ex 4 using the map (or a similar) function
-
+results <- map(test_data, ~{
+  tryCatch({result <- gmean(.x)
+    if (!is.nan(result)) {
+      return(result)
+    }}, 
+    warning = function(w) {
+    return(sprintf("Warning: %s", w$message))}, 
+    error = function(e) {
+    return(sprintf("Error: %s", e$message))})
+})
+results
 ```
 
 
@@ -126,14 +199,29 @@ test_data <- list(
 
 ```{r}
 # Overall table_mm arithmetic mean, median, and geometric mean?
+overall_summary <- diamonds %>%
+  summarise(
+    overall_mean = mean(table_mm, na.rm = TRUE),
+    overall_median = median(table_mm, na.rm = TRUE),
+    overall_geom_mean = gmean(table_mm)
+  )
 
+print(overall_summary)
 
 
 
 
 
 # Arithmetic mean, median, and geometric mean of table_mm within each clarity category
+category_summary <- diamonds %>%
+  group_by(clarity) %>%
+  summarise(
+    mean_table_mm = mean(table_mm, na.rm = TRUE),
+    median_table_mm = median(table_mm, na.rm = TRUE),
+    geom_mean_table_mm = gmean(table_mm)
+  )
 
+print(category_summary)
 
 
 
